@@ -1,6 +1,7 @@
 package handling
 
 import (
+	"fmt"
 	"bytes"
 	"io"
 	"regexp"
@@ -41,18 +42,14 @@ type PodItem struct {
 
 func GetPods(c *kubernetes.Clientset, namespace string, limit int, filter string) []PodItem {
 	podList := make([]PodItem, 0)
-	pods, err := c.CoreV1().Pods(namespace).List(v1.ListOptions{})
+	pods, err := c.CoreV1().Pods(namespace).List(v1.ListOptions{
+		FieldSelector: fmt.Sprintf("metadata.name=%s", filter),
+	})
 	if err != nil {
 		panic(err)
 	}
 
 	for _, pod := range pods.Items {
-		if filter != "" {
-			if matched, _ := regexp.MatchString(".*"+filter+".*", pod.Name); matched {
-				podList = append(podList, PodItem{Name: pod.Name, Time: pod.ObjectMeta.CreationTimestamp})
-			}
-			continue
-		}
 		podList = append(podList, PodItem{Name: pod.Name, Time: pod.ObjectMeta.CreationTimestamp})
 	}
 
