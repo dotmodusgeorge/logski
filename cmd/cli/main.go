@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
-	"os"
 	"fmt"
+	"logski/k8s"
+	"os"
 	"time"
-	"logski/handler"
 )
 
 func printFlagSetDefaults(command flag.FlagSet, name string) {
@@ -18,7 +18,7 @@ func main() {
 
 	podCommand := flag.NewFlagSet("pods", flag.ExitOnError)
 	logCommand := flag.NewFlagSet("logs", flag.ExitOnError)
-	client := handling.CreateClient()
+	client := k8s.CreateClient()
 
 	filter := podCommand.String("filter", "", "Adds wildcarded filter to to the pods list")
 	limit := podCommand.Int("limit", 20, "Adds a limit to the amount of pods gotten")
@@ -36,18 +36,18 @@ func main() {
 		printFlagSetDefaults(*logCommand, "logs")
 		os.Exit(1)
 	}
-	if (podCommand.Parsed()) {
-		pods := handling.GetPods(client, *namespace, *limit, *filter)
+	if podCommand.Parsed() {
+		pods := k8s.GetPods(client, *namespace, *limit, *filter)
 		fmt.Printf("Latest Pods in %s\n", *namespace)
 		for index, pod := range pods {
 			fmt.Printf("%d. %s | %s \n", index+1, pod.Name, pod.Time.Format(time.RFC3339))
 		}
-	} else if (logCommand.Parsed()) {
-		if (*podName == "") {
+	} else if logCommand.Parsed() {
+		if *podName == "" {
 			logCommand.PrintDefaults()
 			os.Exit(1)
 		}
-		logs := handling.GetPodLogs(client, *namespace, *podName)
+		logs := k8s.GetPodLogs(client, *namespace, *podName)
 		fmt.Println(logs)
 	}
 }
