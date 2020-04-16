@@ -15,10 +15,16 @@ func printFlagSetDefaults(command flag.FlagSet, name string) {
 
 func main() {
 	namespace := flag.String("namespace", "default", "Add a namespace other than the default one.")
-
+	
 	podCommand := flag.NewFlagSet("pods", flag.ExitOnError)
 	logCommand := flag.NewFlagSet("logs", flag.ExitOnError)
+	flag.Usage = func() {
+		flag.PrintDefaults()
+		fmt.Println("  pods string \n\tBase command for the 'pods' command.")
+		fmt.Println("  logs string \n\tBase command for the 'logs' command.")
+	}
 	client := k8s.CreateClient()
+
 
 	filter := podCommand.String("filter", "", "Adds wildcarded filter to to the pods list")
 	limit := podCommand.Int("limit", 20, "Adds a limit to the amount of pods gotten")
