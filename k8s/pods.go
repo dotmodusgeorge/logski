@@ -2,10 +2,9 @@ package k8s
 
 import (
 	"bytes"
-	"fmt"
 	"io"
-	"regexp"
 	"sort"
+	"regexp"
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,26 +18,20 @@ type PodItem struct {
 
 func GetPods(c *kubernetes.Clientset, namespace string, limit int, filter string) []PodItem {
 	podList := make([]PodItem, 0)
-	pods, err := c.CoreV1().Pods(namespace).List(v1.ListOptions{
-		FieldSelector: fmt.Sprintf("metadata.name=%s", filter),
-	})
+	
+	pods, err := c.CoreV1().Pods(namespace).List(v1.ListOptions{})
 	if err != nil {
 		panic(err)
 	}
 
 	for _, pod := range pods.Items {
-		podList = append(podList, PodItem{Name: pod.Name, Time: pod.ObjectMeta.CreationTimestamp})
-	}
-
-	if filter != "" {
-		filteredList := make([]PodItem, 0)
-		for i := 0; i < len(podList); i++ {
-			podItem := podList[i]
-			if matched, _ := regexp.MatchString(".*"+filter+".*", podItem.Name); matched {
-				filteredList = append(filteredList, podItem)
+		if filter != "" {
+			if matched, _ := regexp.MatchString(".*"+filter+".*", pod.Name); matched {
+				podList = append(podList, PodItem{Name: pod.Name, Time: pod.ObjectMeta.CreationTimestamp})
 			}
-		}
-		podList = filteredList
+			continue
+		} 
+		podList = append(podList, PodItem{Name: pod.Name, Time: pod.ObjectMeta.CreationTimestamp})
 	}
 
 	sort.Slice(podList, func(i, j int) bool {

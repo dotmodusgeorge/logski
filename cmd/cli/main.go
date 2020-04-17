@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"flag"
 	"fmt"
 	"logski/k8s"
@@ -30,6 +31,7 @@ func main() {
 	limit := podCommand.Int("limit", 20, "Adds a limit to the amount of pods gotten")
 
 	podName := logCommand.String("pod_name", "", "The name of the pod for to getthe log from (required)")
+	outPut := logCommand.String("output", "", "The file that the logs will be outputed into")
 
 	switch os.Args[1] {
 	case "pods":
@@ -54,6 +56,15 @@ func main() {
 			os.Exit(1)
 		}
 		logs := k8s.GetPodLogs(client, *namespace, *podName)
-		fmt.Println(logs)
+
+		if (*outPut != "") {
+			data := []byte(logs)
+			err := ioutil.WriteFile(*outPut, data, 0644)
+			if (err != nil) {
+				panic(err)
+			}
+		} else {
+			fmt.Println(logs)
+		}
 	}
 }
