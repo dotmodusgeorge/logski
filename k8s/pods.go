@@ -65,3 +65,22 @@ func GetPodLogs(c *kubernetes.Clientset, namespace string, name string) string {
 
 	return str
 }
+
+func GetNameSpaces(c *kubernetes.Clientset, filter string) ([]string, error) {
+	namespaces, err := c.CoreV1().Namespaces().List(v1.ListOptions{})
+	if (err != nil) {
+		panic(err)
+	}
+	var namespaceStrings []string
+	for _, namespace := range namespaces.Items {
+		if filter != "" {
+			if matched, _ := regexp.MatchString(".*"+filter+".*", namespace.Name); matched {
+				namespaceStrings = append(namespaceStrings, namespace.Name)
+			}
+			continue
+		} 
+		namespaceStrings = append(namespaceStrings, namespace.Name)
+	}
+
+	return namespaceStrings, nil
+}
