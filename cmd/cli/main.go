@@ -10,20 +10,15 @@ import (
 )
 
 func main() {
-	namespace := flag.String("namespaces", "default", "Add a namespace other than the default one.")
 	
-	nameSpaceCommand := flag.NewFlagSet("namespaces", flag.ExitOnError)
 	podCommand := flag.NewFlagSet("pods", flag.ExitOnError)
 	logCommand := flag.NewFlagSet("logs", flag.ExitOnError)
 	flag.Usage = func() {
 		flag.PrintDefaults()
-		fmt.Println("  namespaces string \n\tBase command for the 'namespaces' command.")
 		fmt.Println("  pods string \n\tBase command for the 'pods' command.")
 		fmt.Println("  logs string \n\tBase command for the 'logs' command.")
 	}
 	client := k8s.CreateClient()
-
-	nameSpaceFilter := nameSpaceCommand.String("filter", "", "Adds wildcarded filter to the namespace list")
 
 	filter := podCommand.String("filter", "", "Adds wildcarded filter to to the pods list")
 	limit := podCommand.Int("limit", 20, "Adds a limit to the amount of pods gotten")
@@ -35,29 +30,44 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
+
+	var namespace *string
 	switch os.Args[1] {
 	case "pods":
+		namespace = podCommand.String("namespace", "default", "Add a namespace other than the default one.")
 		podCommand.Parse(os.Args[2:])
 	case "logs":
+		namespace = logCommand.String("namespace", "default", "Add a namespace other than the default one.")
 		logCommand.Parse(os.Args[2:])
-	case "namespaces":
-		nameSpaceCommand.Parse(os.Args[2:])
 	default:
 		flag.Usage()
 		os.Exit(1)
 	}
+
+	nameSpaces, err := k8s.GetNameSpaces(client, *namespace)
+	if (err != nil) {
+		panic(err)
+	}
+	namespaceString := nameSpaces[0]
+
+	fmt.Printf("Using namespace: %s", namespaceString)
+
 	if podCommand.Parsed() {
-		pods := k8s.GetPods(client, *namespace, *limit, *filter)
+		pods := k8s.GetPods(client, namespaceString, *limit, *filter)
 		fmt.Printf("Latest Pods in %s\n", *namespace)
-		for index, pod := range pods {
-			fmt.Printf("%d. %s | %s \n", index+1, pod.Name, pod.Time.Format(time.RFC3339))
+		if (len(pods) > 0) {
+			for index, pod := range pods {
+				fmt.Printf("%d. %s | %s \n", index+1, pod.Name, pod.Time.Format(time.RFC3339))
+			}
+		} else {
+			fmt.Println("\nThere are no pods\n")
 		}
 	} else if logCommand.Parsed() {
 		if *podName == "" {
 			logCommand.PrintDefaults()
 			os.Exit(1)
 		}
-		logs := k8s.GetPodLogs(client, *namespace, *podName)
+		logs := k8s.GetPodLogs(client, namespaceString, *podName)
 
 		if (*outPut != "") {
 			data := []byte(logs)
@@ -68,13 +78,7 @@ func main() {
 		} else {
 			fmt.Println(logs)
 		}
-	} else if nameSpaceCommand.Parsed() {
-		nameSpaces, err := k8s.GetNameSpaces(client, *nameSpaceFilter)
-		if (err != nil) {
-			panic(err)
-		} 
-		for i, namespace := range nameSpaces {
-			fmt.Println(fmt.Sprintf("%d %s", i, namespace))
-		}
 	}
 }
+
+// ddsnetwork, adobe, dcmcampaignreach, dcmsitereach, ddsnetwork, prisma
